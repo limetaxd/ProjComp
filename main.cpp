@@ -3,6 +3,9 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
+#include <queue>
+#include <windows.h>
 #include "Gravidade.h"
 #include "Paciente.h"
 #include "TabelaHash.h"
@@ -14,6 +17,14 @@ using namespace std;
 
 // declarado fora de qualquer funcao (variavel global) para que todas as funcoes do menu possam usar a mesma tabela.
 TabelaHash<string, Paciente> indicePacientes;
+//Mateus: Vou adcionar os dados que já estão em IndicePacientes a esse vector também, o objetivo é centralizar o sistema de informações dos pacientes.
+//Mateus: Vou usar essa vector para a ordenação da fila prioritaria também, ou seja com base no nível de gravidade.
+vector<Paciente> paciente;
+//Mateus: Identação global da classe Paciente
+Paciente pas;
+//Mateus: Fila normal organizada por ordem de chegada, visto que serão 2 tipos de fila, uma prioritaria e uma normal.
+queue<string> FilaNormal;
+
 
 // desenha o menu na tela.
 void exibirMenu() {
@@ -63,6 +74,13 @@ void cadastrarPaciente() {
 
     Paciente p(cpf, nome, idade, telefone);
     indicePacientes.inserir(cpf, p);
+    //Mateus: Adcionei as informações de cadastro ao vector global.
+    pas.setNome(nome);
+    pas.setIdade(idade);
+    pas.setTelefone(telefone);
+    pas.setCpf(cpf);
+    paciente.push_back(pas);
+    FilaNormal.push(nome);
     cout << "Paciente cadastrado.\n";
 }
 
@@ -107,12 +125,67 @@ void relatorios() {
 
 // opcao 2: classifica o risco do paciente e coloca na fila de prioridade.
 void realizarTriagem() {
+    string situa;
+    string prob;
+    int grav;
+    cout << "Insira uma descrição da situação do paciente:\n";
+    getline(cin, situa);
+
+    cout << "Insira o problema ou doença que o paciente tem:\n";
+    getline(cin, prob);
+
+    while(true){
+    cout << "Insira o nivel de gravidade do paciente de acordo com o número de cada cor: \n1.Vermelho \n2.Laranja \n3.Amarelo \n4.Verde \n5.Azul\n";
+    if(!(cin >> grav) || grav < 0 || grav > 4){
+        cout << "Insira um valor entre 0 e 4!";
+        cin.clear();
+        cin.ignore(1000, '\n');
+        continue;
+    }
+    break;
+    }
+    pas.setSitua(situa);
+    pas.setProblema(prob);
+    pas.setGrav(grav);
+    paciente.push_back(pas);
+    //TODO[Mateus]: Fazer um sistema de organização da fila prioritaria usando o vector global paciente.
+
     cout << "\n[TODO Mateus] Classificar risco e inserir na fila.\n";
 }
 
-// opcao 3: retira da fila o paciente de maior gravidade.
-// em caso de empate, sai primeiro quem chegou antes.
+
+//Opção 3: Criar um sistema de chamar ou a fila prioritaria ou a fila Normal retirando o paciente mais grave no caso da prioritaria e o paciente mais antigo em espera no caso da fila normal.
+// Em caso de empate na prioritaria sai quem chegou primeira
 void chamarProximo() {
+    int op = 0;
+    char letra;
+    while(true){
+    cout << "Escolha a fila que você deseja chamar o proximo!\n";
+    cout << "1. Fila Prioritaria\n";
+    cout << "2. Fila Normal\n";
+    if(!(cin >> op) || op < 1 || op > 2){
+        cout << "Selecione 1 ou 2!\n";
+        cin.clear();
+        cin.ignore(1000, '\n');
+        continue;
+    }
+    switch (op){
+        case 1:{
+            break;
+        }
+        case 2:{
+            break;
+        }
+
+    }
+    cout << "Deseja chamar o proximo de mais alguma fila?(S/N)\n";
+    cin >> letra;
+    if(letra == 's' || letra == 'S'){
+        continue;
+    }
+    break;
+    }
+
     cout << "\n[TODO Mateus] Remover o paciente de maior prioridade.\n";
 }
 
@@ -155,6 +228,7 @@ int lerOpcao() {
 }
 
 int main() {
+    SetConsoleOutputCP(CP_UTF8);
     int opcao;
 
     // do-while em vez de while: garante que o menu aparece pelo menos uma vez antes de qualquer teste de saida.
