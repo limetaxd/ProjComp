@@ -9,6 +9,7 @@ isso ele precisa enxergar a implementacao inteira no momento do #include.
 #define TABELA_HASH_H
 
 #include <string>
+#include <vector>
 using namespace std;
 
 /*
@@ -151,6 +152,19 @@ class TabelaHash{
     // fator de carga = elementos por posicao do vetor. abaixo de 1.0 a busca fica proxima de tempo constante. acima disso as listas ficam longas e a busca comeca a virar linear.
     double fatorDeCarga() const {
         return (double)totalElementos / (double)capacidade;
+    }
+
+    // (PAULO) Armazena todos os CPFs da tabela hash em um vetor e retorna esse vetor. Serve para listar todos os pacientes cadastrados.
+    vector<K> listarChaves(){
+        vector<K> listaChaves;
+        for(int i = 0; i<capacidade; i++){
+            No* atual = tabela[i];
+            while(atual != nullptr){
+                listaChaves.push_back(atual->chave);
+                atual = atual->proximo;
+            }
+        }
+        return listaChaves;
     }
 };
  

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
 #include "Gravidade.h"
 #include "Paciente.h"
 #include "TabelaHash.h"
@@ -83,13 +84,99 @@ void consultarProntuario() {
     // TODO(paulo): exibir aqui o historico de atendimentos da lde
 }
 
+// Persiste os dados dos pacientes em um arquivo txt
+void salvarPacientes(){
+    ofstream arquivoPacientes("pacientes.txt");
+    if (!arquivoPacientes.is_open()) {
+        cout<<"Erro ao abrir o arquivo de pacientes!!"<<endl;
+        return;
+    }
+
+    vector<string> chaves = indicePacientes.listarChaves();
+    
+    for(auto it = chaves.begin(); it != chaves.end(); it++){
+
+        Paciente *paciente = indicePacientes.buscar(*it); 
+        string cpf = paciente->getCpf();
+        string nome = paciente->getNome();
+        int idade = paciente->getIdade();
+        string telefone = paciente->getTelefone();
+        
+        arquivoPacientes<<cpf<<";";
+        arquivoPacientes<<nome<<";";
+        arquivoPacientes<<idade<<";";
+        arquivoPacientes<<telefone<<endl;
+    }
+
+    arquivoPacientes.close();
+
+    cout<<"Dados salvos em paciente.txt com sucesso."<<endl;
+}
+
+// Lê os dados armazenados em um arquivo txt dos pacientes
+void carregarPacientes(){
+    ifstream arquivoPacientes("pacientes.txt");
+
+    if (!arquivoPacientes.is_open()) {
+        cout<<"Erro ao abrir o arquivo de pacientes!!"<<endl;
+        return;
+    }
+
+    string linha;
+    int local = 0;
+    
+
+    //Variaveis usada para armazenar temporariamente os dados de um paciente
+    string cpf, nome,telefone;
+    int idade, quantidade = 0;
+
+    //cpf;nome;idade;telefone
+    while(getline(arquivoPacientes, linha)){
+
+        local = linha.find(';');
+        cpf = linha.substr(0, local);
+        linha = linha.substr(local + 1, linha.length());
+
+        local = linha.find(';');
+        nome = linha.substr(0, local);
+        linha = linha.substr(local + 1, linha.length());
+
+        local = linha.find(';');
+        idade = stoi(linha.substr(0, local));
+        linha = linha.substr(local + 1, linha.length());
+
+        telefone = linha.substr(0, linha.length());
+        
+        Paciente p(cpf, nome, idade, telefone);
+        indicePacientes.inserir(cpf, p);
+
+        quantidade++;
+    }
+
+    cout<<quantidade<<" pacientes carregados com sucesso."<<endl;
+}
+
 // opcao 9: gravar e ler os dados em arquivo, para nao perder tudo ao fechar.
 void salvarCarregarDados() {
-    /*
-    TODO(arthur): gravar e ler os dados em um arquivo texto.
-    definir com mateus e paulo o que entra no arquivo: so os pacientes, ou tambem os atendimentos e o estado da fila.
-    */
-    cout << "\n[TODO Arthur] Persistencia em arquivo.\n";
+    int aux;
+
+    cout<<"1 - Salvar dados"<<endl;
+    cout<<"2 - Carregar dados"<<endl;
+    cin>>aux;
+
+    switch(aux){
+        case 1:{
+            salvarPacientes();
+            break;
+        }
+        case 2:{
+            carregarPacientes();
+            break;
+
+        }
+
+    }
+
 }
 
 // opcao 8: numeros do sistema. as tres primeiras linhas servem de material para a analise de desempenho da tabela hash.
