@@ -23,8 +23,11 @@ vector<Paciente> paciente;
 //Mateus: Identação global da classe Paciente
 Paciente pas;
 //Mateus: Fila normal organizada por ordem de chegada, visto que serão 2 tipos de fila, uma prioritaria e uma normal.
-queue<string> FilaNormal;
-
+queue<Paciente> FilaNormal;
+queue<Paciente> FilaPrioritaria;
+//Mateus: Usado no sistema de 2P, 1C
+//Mateus: Tenho que salvar isso no arquivo de salvamento!!
+int pc = 0;
 
 // desenha o menu na tela.
 void exibirMenu() {
@@ -80,7 +83,6 @@ void cadastrarPaciente() {
     pas.setTelefone(telefone);
     pas.setCpf(cpf);
     paciente.push_back(pas);
-    FilaNormal.push(nome);
     cout << "Paciente cadastrado.\n";
 }
 
@@ -123,7 +125,7 @@ void relatorios() {
 // MATEUS - fila de atendimento
 // ============================================================
 
-// opcao 2: classifica o risco do paciente e coloca na fila de prioridade.
+// opcao 2: classifica o risco do paciente e coloca na fila de prioridade(Feito!).
 void realizarTriagem() {
     string situa;
     string prob;
@@ -144,49 +146,96 @@ void realizarTriagem() {
     }
     break;
     }
+    
     pas.setSitua(situa);
     pas.setProblema(prob);
     pas.setGrav(grav);
     paciente.push_back(pas);
-    //TODO[Mateus]: Fazer um sistema de organização da fila prioritaria usando o vector global paciente.
 
-    cout << "\n[TODO Mateus] Classificar risco e inserir na fila.\n";
+    if(grav < 2){
+        FilaPrioritaria.push(paciente.back());
+    }
+    else{
+        FilaNormal.push(paciente.back());
+    }
+    //Mateus: Organizei o vector global paciente para ficar mais facil de trabalhar com ele
+    vector<Paciente> auxiliar;
+    for(int i = 0; i < paciente.size(); i++){
+        for(int l = 0; l < paciente.size(); l++){
+            if(paciente[i].getGrav() > paciente[l].getGrav()){
+                auxiliar.push_back(paciente[i]);
+                paciente[i] = paciente[l];
+                paciente[l] = auxiliar[0];
+                auxiliar.pop_back();
+            }
+        }
+    }
 }
+//Considerações: Criar um sistema de senha, ao invés de chamar pelo nome e CPF, devo chamar uma senha, apesar de interessante, não sei se é a melhor forma
 
-
-//Opção 3: Criar um sistema de chamar ou a fila prioritaria ou a fila Normal retirando o paciente mais grave no caso da prioritaria e o paciente mais antigo em espera no caso da fila normal.
+//Opção 3: Criar um sistema em que ou eu faço a chamda do proximo seguindo o padrão original, 2 pessoas prefrerencial e uma Normal sempre nessa ordem
 // Em caso de empate na prioritaria sai quem chegou primeira
-void chamarProximo() {
+//Ou que eu posso fazer uma chamada personalizada, em que posso escolher de qual fila será o proximo a ser chamado.
+void chamarProximo(){
     int op = 0;
-    char letra;
     while(true){
-    cout << "Escolha a fila que você deseja chamar o proximo!\n";
-    cout << "1. Fila Prioritaria\n";
-    cout << "2. Fila Normal\n";
+    cout << "Escolha entre o método de chamada padrão ou a chamada personalizada:\n";
+    cout << "1. Chamada Padrão(2P,1C)\n";
+    cout << "2. Chamada Personalizada\n";
     if(!(cin >> op) || op < 1 || op > 2){
-        cout << "Selecione 1 ou 2!\n";
+        cout << "Escolha entre a opção 1 e 2!!\n";
         cin.clear();
         cin.ignore(1000, '\n');
         continue;
     }
-    switch (op){
+    switch(op){
+        // Mateus: Sistema provisorio no Case1, vou buscar ver alguns outro métodos!
         case 1:{
+            if(pc < 2){
+                cout << "Proximo Paciente: "<< FilaPrioritaria.front().getNome() << endl;
+                cout << "CPF: "<< FilaPrioritaria.front().getCpf() << endl;
+                FilaPrioritaria.pop();
+                pc++;
+            }
+            else{
+                cout << "Proximo Paciente: "<<FilaNormal.front().getNome() << endl;
+                cout << "CPF: "<<FilaNormal.front().getCpf() << endl;
+                FilaNormal.pop();
+                pc = 0;
+            }
             break;
         }
         case 2:{
+            int opchamada = 0;
+            while(true){
+            cout << "Escolha uma das seguintes opções!\n";
+            cout << "1. Chamar Paciente da Fila Normal!\n";
+            cout << "2. Chamar Paciente da Fila Prioritária!\n";
+            if(!(cin >> opchamada) || opchamada < 1 || opchamada > 2){
+                cout << "Escolha entre a opção 1 e 2!!\n";
+                cin.clear();
+                cin.ignore(1000, '\n');
+                continue;
+            }
+            switch(opchamada){
+                case 1:{
+                    cout << "Proximo Paciente: "<< FilaNormal.front().getNome() <<endl;
+                    cout << "CPF: "<< FilaNormal.front().getCpf() << endl;
+                    FilaNormal.pop();
+                    break;
+                }
+                case 2:{
+                    cout << "Proximo Paciente: "<< FilaPrioritaria.front().getNome() << endl;
+                    cout << "CPF: " << FilaPrioritaria.front().getCpf() << endl;
+                    FilaPrioritaria.pop();
+                    break;
+                }
+            }
+        }
             break;
         }
-
     }
-    cout << "Deseja chamar o proximo de mais alguma fila?(S/N)\n";
-    cin >> letra;
-    if(letra == 's' || letra == 'S'){
-        continue;
     }
-    break;
-    }
-
-    cout << "\n[TODO Mateus] Remover o paciente de maior prioridade.\n";
 }
 
 // opcao 7: mostra a fila inteira na ordem em que sera atendida.
