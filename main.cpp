@@ -5,9 +5,11 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <ctime>
 #include <windows.h>
 #include "Gravidade.h"
 #include "Paciente.h"
+#include "Atendimento.h"
 #include "TabelaHash.h"
 
 using namespace std;
@@ -17,14 +19,12 @@ using namespace std;
 
 // declarado fora de qualquer funcao (variavel global) para que todas as funcoes do menu possam usar a mesma tabela.
 TabelaHash<string, Paciente> indicePacientes;
-//Mateus: Vou adcionar os dados que já estão em IndicePacientes a esse vector também, o objetivo é centralizar o sistema de informações dos pacientes.
-//Mateus: Vou usar essa vector para a ordenação da fila prioritaria também, ou seja com base no nível de gravidade.
-vector<Paciente> paciente;
-//Mateus: Identação global da classe Paciente
-Paciente pas;
+//Mateus: Esse vector guarda os atendimentos (triagens) realizados e é usado para a ordenação com base no nível de gravidade.
+vector<Atendimento> atendimentos;
 //Mateus: Fila normal organizada por ordem de chegada, visto que serão 2 tipos de fila, uma prioritaria e uma normal.
-queue<Paciente> FilaNormal;
-queue<Paciente> FilaPrioritaria;
+//Mateus: As filas guardam Atendimento (e nao Paciente), o paciente e achado depois pelo cpf na tabela hash.
+queue<Atendimento> FilaNormal;
+queue<Atendimento> FilaPrioritaria;
 //Mateus: Usado no sistema de 2P, 1C
 //Mateus: Tenho que salvar isso no arquivo de salvamento!!
 int pc = 0;
@@ -77,12 +77,6 @@ void cadastrarPaciente() {
 
     Paciente p(cpf, nome, idade, telefone);
     indicePacientes.inserir(cpf, p);
-    //Mateus: Adcionei as informações de cadastro ao vector global.
-    pas.setNome(nome);
-    pas.setIdade(idade);
-    pas.setTelefone(telefone);
-    pas.setCpf(cpf);
-    paciente.push_back(pas);
     cout << "Paciente cadastrado.\n";
 }
 
@@ -125,11 +119,34 @@ void relatorios() {
 // MATEUS - fila de atendimento
 // ============================================================
 
+//Mateus: PROVISORIO - data do atendimento pega do relogio do sistema (dd/mm/aaaa).
+// o formato (e se o usuario digita ou nao) ainda sera definido com o Paulo, por isso fica isolado nesta funcao.
+string dataAtual(){
+    time_t agora = time(0);
+    char buffer[11];
+    strftime(buffer, sizeof(buffer), "%d/%m/%Y", localtime(&agora));
+    return string(buffer);
+}
+
 // opcao 2: classifica o risco do paciente e coloca na fila de prioridade(Feito!).
 void realizarTriagem() {
+    string cpf;
     string situa;
     string prob;
     int grav;
+
+    //Mateus: pede o cpf de quem esta sendo triado e busca na tabela hash, assim a triagem nao depende do ultimo cadastrado.
+    cout << "\nCPF do paciente: ";
+    cin >> cpf;
+    Paciente* p = indicePacientes.buscar(cpf);
+    if(p == nullptr){
+        cout << "Paciente nao encontrado. Cadastre o paciente antes da triagem.\n";
+        return;
+    }
+
+    //Mateus: descarta o \n que o cin >> deixou no buffer, senao o primeiro getline le uma linha vazia.
+    cin.ignore(1000, '\n');
+
     cout << "Insira uma descrição da situação do paciente:\n";
     getline(cin, situa);
 
@@ -137,9 +154,9 @@ void realizarTriagem() {
     getline(cin, prob);
 
     while(true){
-    cout << "Insira o nivel de gravidade do paciente de acordo com o número de cada cor: \n1.Vermelho \n2.Laranja \n3.Amarelo \n4.Verde \n5.Azul\n";
+    cout << "Insira o nivel de gravidade do paciente de acordo com o número de cada cor: \n0.Vermelho \n1.Laranja \n2.Amarelo \n3.Verde \n4.Azul\n";
     if(!(cin >> grav) || grav < 0 || grav > 4){
-        cout << "Insira um valor entre 0 e 4!";
+        cout << "Insira um valor entre 0 e 4!\n";
         cin.clear();
         cin.ignore(1000, '\n');
         continue;
@@ -147,28 +164,32 @@ void realizarTriagem() {
     break;
     }
     
-    pas.setSitua(situa);
-    pas.setProblema(prob);
-    pas.setGrav(grav);
-    paciente.push_back(pas);
+    //Mateus: grav continua sendo lido como int, mas aqui ele vira o enum Gravidade oficial do projeto.
+    Gravidade gravidade = (Gravidade)grav;
 
-    if(grav < 2){
-        FilaPrioritaria.push(paciente.back());
+    //Mateus: prob vira diagnostico e situa vira observacoes.
+    Atendimento novoAtendimento(p->getCpf(), dataAtual(), gravidade, prob, situa);
+    atendimentos.push_back(novoAtendimento);
+
+    if(gravidade < AMARELO){
+        FilaPrioritaria.push(novoAtendimento);
     }
     else{
-        FilaNormal.push(paciente.back());
+        FilaNormal.push(novoAtendimento);
     }
-    //Mateus: Organizei o vector global paciente para ficar mais facil de trabalhar com ele
-    vector<Paciente> auxiliar;
-    for(int i = 0; i < paciente.size(); i++){
-        for(int l = 0; l < paciente.size(); l++){
-            if(paciente[i].getGrav() > paciente[l].getGrav()){
-                auxiliar.push_back(paciente[i]);
-                paciente[i] = paciente[l];
-                paciente[l] = auxiliar[0];
-                auxiliar.pop_back();
-            }
+    cout << "Triagem realizada: " << nomeGravidade(gravidade) << ".\n";
+
+    //Mateus: Organizei o vector global atendimentos para ficar mais facil de trabalhar com ele
+    //Mateus: Quanto MENOR o valor do enum, MAIOR a urgencia, entao o '<' deixa os casos mais graves no inicio.
+    //Mateus: Ordenacao por insercao: so troca de lugar quando o anterior e MENOS grave, entao quem chegou primeiro continua na frente no empate (FIFO).
+    for(int i = 1; i < atendimentos.size(); i++){
+        Atendimento chave = atendimentos[i];
+        int j = i - 1;
+        while(j >= 0 && chave.getGravidade() < atendimentos[j].getGravidade()){
+            atendimentos[j + 1] = atendimentos[j];
+            j--;
         }
+        atendimentos[j + 1] = chave;
     }
 }
 //Considerações: Criar um sistema de senha, ao invés de chamar pelo nome e CPF, devo chamar uma senha, apesar de interessante, não sei se é a melhor forma
@@ -176,7 +197,26 @@ void realizarTriagem() {
 //Opção 3: Criar um sistema em que ou eu faço a chamda do proximo seguindo o padrão original, 2 pessoas prefrerencial e uma Normal sempre nessa ordem
 // Em caso de empate na prioritaria sai quem chegou primeira
 //Ou que eu posso fazer uma chamada personalizada, em que posso escolher de qual fila será o proximo a ser chamado.
+//Mateus: A fila guarda Atendimento, que so tem o cpf. O nome vem da tabela hash, buscando pelo cpf.
+void exibirChamada(const Atendimento& atendimento){
+    Paciente* p = indicePacientes.buscar(atendimento.getCpfPaciente());
+    if(p == nullptr){
+        cout << "Proximo Paciente: Paciente nao encontrado\n";
+    }
+    else{
+        cout << "Proximo Paciente: " << p->getNome() << endl;
+    }
+    cout << "CPF: " << atendimento.getCpfPaciente() << endl;
+}
+
 void chamarProximo(){
+    //Mateus: se nao tem ninguem esperando, nao ha o que chamar (front() e pop() em fila vazia derrubam o programa).
+    if(FilaPrioritaria.empty() && FilaNormal.empty()){
+        cout << "Nao ha pacientes aguardando.\n";
+        return;
+    }
+
+    //Mateus: o while(true) ficou so para validar a entrada. Depois de uma opcao valida ele sai com break.
     int op = 0;
     while(true){
     cout << "Escolha entre o método de chamada padrão ou a chamada personalizada:\n";
@@ -188,18 +228,20 @@ void chamarProximo(){
         cin.ignore(1000, '\n');
         continue;
     }
+    break;
+    }
+
     switch(op){
         // Mateus: Sistema provisorio no Case1, vou buscar ver alguns outro métodos!
         case 1:{
-            if(pc < 2){
-                cout << "Proximo Paciente: "<< FilaPrioritaria.front().getNome() << endl;
-                cout << "CPF: "<< FilaPrioritaria.front().getCpf() << endl;
+            //Mateus: chama da prioritaria enquanto pc < 2. Se uma das filas estiver vazia, chama da outra.
+            if((pc < 2 && !FilaPrioritaria.empty()) || FilaNormal.empty()){
+                exibirChamada(FilaPrioritaria.front());
                 FilaPrioritaria.pop();
                 pc++;
             }
             else{
-                cout << "Proximo Paciente: "<<FilaNormal.front().getNome() << endl;
-                cout << "CPF: "<<FilaNormal.front().getCpf() << endl;
+                exibirChamada(FilaNormal.front());
                 FilaNormal.pop();
                 pc = 0;
             }
@@ -217,24 +259,33 @@ void chamarProximo(){
                 cin.ignore(1000, '\n');
                 continue;
             }
+            break;
+            }
+
             switch(opchamada){
                 case 1:{
-                    cout << "Proximo Paciente: "<< FilaNormal.front().getNome() <<endl;
-                    cout << "CPF: "<< FilaNormal.front().getCpf() << endl;
-                    FilaNormal.pop();
+                    if(FilaNormal.empty()){
+                        cout << "A fila normal esta vazia.\n";
+                    }
+                    else{
+                        exibirChamada(FilaNormal.front());
+                        FilaNormal.pop();
+                    }
                     break;
                 }
                 case 2:{
-                    cout << "Proximo Paciente: "<< FilaPrioritaria.front().getNome() << endl;
-                    cout << "CPF: " << FilaPrioritaria.front().getCpf() << endl;
-                    FilaPrioritaria.pop();
+                    if(FilaPrioritaria.empty()){
+                        cout << "A fila prioritaria esta vazia.\n";
+                    }
+                    else{
+                        exibirChamada(FilaPrioritaria.front());
+                        FilaPrioritaria.pop();
+                    }
                     break;
                 }
             }
-        }
             break;
         }
-    }
     }
 }
 
