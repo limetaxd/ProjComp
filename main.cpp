@@ -7,6 +7,7 @@
 #include "Gravidade.h"
 #include "Paciente.h"
 #include "TabelaHash.h"
+#include "Historico.h"
 
 using namespace std;
 
@@ -15,6 +16,7 @@ using namespace std;
 
 // declarado fora de qualquer funcao (variavel global) para que todas as funcoes do menu possam usar a mesma tabela.
 TabelaHash<string, Paciente> indicePacientes;
+TabelaHash<string, Historico*> indiceHistoricos;
 
 // desenha o menu na tela.
 void exibirMenu() {
@@ -82,6 +84,27 @@ void consultarProntuario() {
     p->exibir();    // -> e o acesso a metodo por meio de ponteiro
 
     // TODO(paulo): exibir aqui o historico de atendimentos da lde
+    Historico** historicoPonteiro= indiceHistoricos.buscar(cpf);
+
+    if(historicoPonteiro != nullptr){
+        cout << "=== HISTÓRICO DO PACIENTE ===" << endl;
+
+        Historico* historicoPaciente = *historicoPonteiro;
+
+        if(historicoPaciente->irParaInicio()){
+            do { 
+            Atendimento a = historicoPaciente->atual();
+            // Imprime as informações do atendimento
+            cout << "Data: " << a.getData() << endl;
+            cout << "Gravidade: " << nomeGravidade(a.getGravidade()) << endl; 
+            cout << "Diagnóstico: " << a.getDiagnostico() << endl;
+            cout << "Observações: " << a.getObservacoes() << endl;
+            cout << "-----------------------------------" << endl;
+            } while(historicoPaciente->proximo());
+        } 
+    } else{
+        cout << "Este paciente ainda nao tem atendimentos registrados." << endl;
+    }
 }
 
 // Persiste os dados dos pacientes em um arquivo txt
@@ -153,7 +176,7 @@ void carregarPacientes(){
         quantidade++;
     }
 
-    cout<<quantidade<<" pacientes carregados com sucesso."<<endl;
+    cout<<quantidade<<" paciente(s) carregados com sucesso."<<endl;
 }
 
 // opcao 9: gravar e ler os dados em arquivo, para nao perder tudo ao fechar.

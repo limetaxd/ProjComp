@@ -90,6 +90,18 @@ class Historico{
             return false;
         }
 
+        // Coloca o cursor no primeiro atendimento (o mais antigo)
+        bool irParaInicio() {
+            cursor = inicio;
+            return cursor != nullptr; // Retorna true se a lista não estiver vazia
+        }
+
+        // Coloca o cursor no último atendimento (o mais recente)
+        bool irParaFim() {
+            cursor = fim;
+            return cursor != nullptr;
+        }
+
         Atendimento atual(){
             if(cursor != nullptr){
                 return cursor->atendimento;
