@@ -32,4 +32,3 @@ void Paciente::exibir() const{
     <<"Idade: "<<idade<<"\n"
     <<"Telefone: "<<telefone<<"\n";
 }
-
