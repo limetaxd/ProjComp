@@ -4,3 +4,6 @@
 build/
 .vscode/
 .vs/
+benchmark
+pacientes.txt
+atendimentos.txt

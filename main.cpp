@@ -72,20 +72,143 @@ int lerOpcao() {
         cin.ignore(10000, '\n');
         cout << "Entrada invalida. Digite um numero: ";
     }
+    // descarta o resto da linha. sem isto, o primeiro getline depois do menu
+    // leria o enter que sobrou e voltaria uma string vazia.
+    cin.ignore(10000, '\n');
     return valor;
+}
+
+// confere se o texto e formado so por digitos.
+// usada tanto na validacao do cadastro quanto na leitura dos arquivos.
+// e ela que evita passar lixo para o stoi, que lancaria excecao.
+bool apenasDigitos(const string& texto) {
+    if (texto.empty()) {
+        return false;
+    }
+    for (size_t i = 0; i < texto.size(); i++) {
+        if (texto[i] < '0' || texto[i] > '9') {
+            return false;
+        }
+    }
+    return true;
 }
 
 // ============================================================
 // ARTHUR - nucleo de dados e busca
 // ============================================================
 
+// ------------------------------------------------------------
+// VALIDACAO DAS ENTRADAS DO CADASTRO
+//
+// todas as leituras usam getline e validam o texto antes de converter.
+// ler como texto, e nao direto com cin >> int, evita que o cin entre em
+// estado de falha quando o usuario digita uma letra onde se espera numero.
+// ------------------------------------------------------------
+
+// cpf: exatamente 11 digitos, sem ponto, traco ou letra.
+string lerCpf() {
+    string cpf;
+    while (true) {
+        cout << "CPF: ";
+        getline(cin, cpf);
+
+        if (!apenasDigitos(cpf)) {
+            cout << "  O CPF so pode conter numeros.\n";
+            continue;
+        }
+        if (cpf.size() != 11) {
+            cout << "  O CPF precisa ter 11 digitos. Voce digitou " << cpf.size() << ".\n";
+            continue;
+        }
+        return cpf;
+    }
+}
+
+// nome: nao pode ficar em branco nem conter digito.
+// nao filtro acento nem espaco: "Jose da Conceicao" e um nome valido, e
+// caractere acentuado ocupa mais de um byte, entao testar letra por letra
+// rejeitaria nomes corretos. por isso a regra e pela negativa: sem numero.
+string lerNome() {
+    string nome;
+    while (true) {
+        cout << "Nome: ";
+        getline(cin, nome);
+
+        bool temLetra = false;
+        bool temDigito = false;
+        for (size_t i = 0; i < nome.size(); i++) {
+            if (nome[i] >= '0' && nome[i] <= '9') {
+                temDigito = true;
+            }
+            if (nome[i] != ' ') {
+                temLetra = true;
+            }
+        }
+
+        if (!temLetra) {
+            cout << "  O nome nao pode ficar em branco.\n";
+            continue;
+        }
+        if (temDigito) {
+            cout << "  O nome nao pode conter numeros.\n";
+            continue;
+        }
+        return nome;
+    }
+}
+
+// idade: numero inteiro de 0 a 130.
+// o limite de 3 caracteres antes do stoi evita estourar o int com um
+// numero gigante, que faria o stoi lancar out_of_range.
+int lerIdade() {
+    string texto;
+    while (true) {
+        cout << "Idade: ";
+        getline(cin, texto);
+
+        if (!apenasDigitos(texto)) {
+            cout << "  A idade so pode conter numeros.\n";
+            continue;
+        }
+        if (texto.size() > 3) {
+            cout << "  A idade precisa estar entre 0 e 130.\n";
+            continue;
+        }
+        int idade = stoi(texto);
+        if (idade > 130) {
+            cout << "  A idade precisa estar entre 0 e 130.\n";
+            continue;
+        }
+        return idade;
+    }
+}
+
+// telefone: 10 ou 11 digitos, com DDD e sem formatacao.
+// 10 digitos e telefone fixo, 11 e celular, que tem o nono digito.
+// nao aceito parentese, espaco nem traco para o numero ficar gravado
+// sempre no mesmo formato no arquivo.
+string lerTelefone() {
+    string telefone;
+    while (true) {
+        cout << "Telefone: ";
+        getline(cin, telefone);
+
+        if (!apenasDigitos(telefone)) {
+            cout << "  O telefone so pode conter numeros, sem espaco, parentese ou traco.\n";
+            continue;
+        }
+        if (telefone.size() < 10 || telefone.size() > 11) {
+            cout << "  O telefone precisa ter 10 ou 11 digitos, com o DDD. Voce digitou " << telefone.size() << ".\n";
+            continue;
+        }
+        return telefone;
+    }
+}
+
 // opcao 1: le os dados do teclado e guarda o paciente na tabela hash.
 void cadastrarPaciente() {
-    string cpf, nome, telefone;
-    int idade;
-
-    cout << "\nCPF: ";
-    cin >> cpf;
+    cout << "\n";
+    string cpf = lerCpf();
 
     // a busca antes da insercao evita cpf duplicado.
     // buscar devolve nullptr quando nao encontra, entao "diferente de nullptr" significa "ja existe".
@@ -94,13 +217,9 @@ void cadastrarPaciente() {
         return;
     }
 
-    cin.ignore();
-    cout << "Nome: ";
-    getline(cin, nome);
-    cout << "Idade: ";
-    cin >> idade;
-    cout << "Telefone: ";
-    cin >> telefone;
+    string nome = lerNome();
+    int idade = lerIdade();
+    string telefone = lerTelefone();
 
     Paciente p(cpf, nome, idade, telefone);
     indicePacientes.inserir(cpf, p);
@@ -212,20 +331,6 @@ bool dividirLinha(const string& linha, string campos[], int esperado) {
             }
             campos[i] = linha.substr(inicio, separador - inicio);
             inicio = separador + 1;
-        }
-    }
-    return true;
-}
-
-// confere se o texto e um numero inteiro antes de passar para o stoi.
-// sem esta checagem o stoi lanca excecao e o programa encerra de forma abrupta.
-bool apenasDigitos(const string& texto) {
-    if (texto.empty()) {
-        return false;
-    }
-    for (size_t i = 0; i < texto.size(); i++) {
-        if (texto[i] < '0' || texto[i] > '9') {
-            return false;
         }
     }
     return true;
