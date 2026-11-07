@@ -102,6 +102,13 @@ class Historico{
             return cursor != nullptr;
         }
 
+        // diz se o historico esta vazio, sem mexer no cursor (diferente de irParaInicio()/
+        // irParaFim(), que movem o cursor como efeito colateral). serve pra checar se tem
+        // algo pra mostrar antes de navegar, sem perder a posicao atual.
+        bool vazio() const {
+            return cursor == nullptr;
+        }
+
         Atendimento atual(){
             if(cursor != nullptr){
                 return cursor->atendimento;

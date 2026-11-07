@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <cctype>
 #include "Gravidade.h"
 #include "Paciente.h"
 #include "TabelaHash.h"
@@ -239,12 +240,86 @@ void verEstadoDaFila() {
 
 // opcao 5: percorre o historico do paciente nos dois sentidos.e o que justifica a lista duplamente encadeada em vez da simples.
 void navegarHistorico() {
-    cout << "\n[TODO Paulo] Percorrer a LDE (anterior / proxima).\n";
+    string cpf;
+    cout << "\nCPF: ";
+    cin >> cpf;
+
+    Historico** historicoPonteiro = indiceHistoricos.buscar(cpf);
+    if (historicoPonteiro == nullptr || (*historicoPonteiro)->vazio()) {
+        cout << "Este paciente ainda nao tem atendimentos registrados.\n";
+        return;
+    }
+
+    Historico* historicoPaciente = *historicoPonteiro;
+
+    // nao chama irParaInicio()/irParaFim() aqui: o cursor continua de onde a ultima
+    // navegacao (ou insercao) deixou, sem resetar a posicao a cada vez que o menu abre.
+    char opcao;
+    do {
+        Atendimento a = historicoPaciente->atual();
+        cout << "\n--- Atendimento (" << cpf << ") ---\n";
+        cout << "Data: " << a.getData() << endl;
+        cout << "Gravidade: " << nomeGravidade(a.getGravidade()) << endl;
+        cout << "Diagnostico: " << a.getDiagnostico() << endl;
+        cout << "Observacoes: " << a.getObservacoes() << endl;
+
+        cout << "\n[A]nterior  [P]roximo  [S]air: ";
+        cin >> opcao;
+        opcao = toupper(opcao);
+
+        if (opcao == 'A') {
+            if (!historicoPaciente->anterior()) {
+                cout << "Ja esta no atendimento mais antigo.\n";
+            }
+        } else if (opcao == 'P') {
+            if (!historicoPaciente->proximo()) {
+                cout << "Ja esta no atendimento mais recente.\n";
+            }
+        }
+    } while (opcao != 'S');
 }
 
 // opcao 6: conta quantas vezes cada diagnostico aparece no historico do proprio paciente.
 void verRecorrencia() {
-    cout << "\n[TODO Paulo] Contar ocorrencias de cada diagnostico do paciente.\n";
+    string cpf;
+    cout << "\nCPF: ";
+    cin >> cpf;
+
+    Historico** historicoPonteiro = indiceHistoricos.buscar(cpf);
+    if (historicoPonteiro == nullptr || (*historicoPonteiro)->vazio()) {
+        cout << "Este paciente ainda nao tem atendimentos registrados.\n";
+        return;
+    }
+
+    Historico* historicoPaciente = *historicoPonteiro;
+
+    // conta quantas vezes cada diagnostico aparece. um vector<pair<string,int>> resolve
+    // aqui porque a lista e pequena (so os atendimentos DESSE paciente) - nao precisa da
+    // TabelaHash, que nem teria como listar as chaves que ela mesma guarda.
+    vector<pair<string,int>> contagem;
+
+    historicoPaciente->irParaInicio();
+    do {
+        Atendimento a = historicoPaciente->atual();
+        string diagnostico = a.getDiagnostico();
+
+        bool achou = false;
+        for (size_t i = 0; i < contagem.size(); i++) {
+            if (contagem[i].first == diagnostico) {
+                contagem[i].second++;
+                achou = true;
+                break;
+            }
+        }
+        if (!achou) {
+            contagem.push_back(make_pair(diagnostico, 1));
+        }
+    } while (historicoPaciente->proximo());
+
+    cout << "\n=== RECORRENCIA DE DIAGNOSTICOS (" << cpf << ") ===\n";
+    for (size_t i = 0; i < contagem.size(); i++) {
+        cout << "  " << contagem[i].first << ": " << contagem[i].second << "\n";
+    }
 }
 
 // ============================================================
