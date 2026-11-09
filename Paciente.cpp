@@ -5,6 +5,7 @@ Arthur Lima Rocha Ribeiro Paes - 261010493
 implementacao dos metodos declarados no paciente.h
 o prefixo "Paciente::" antes de cada nome indica que o metodo pertence aquela classe, e nao e uma funcao solta do programa.
 */
+
 #include "Paciente.h"
 #include <iostream>
 using namespace std;

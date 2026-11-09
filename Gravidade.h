@@ -33,5 +33,4 @@ inline string nomeGravidade(Gravidade g){
     }
     return "Desconhecido"; // so acontece se alguem passar um valor fora do enum
 }
-
 #endif
